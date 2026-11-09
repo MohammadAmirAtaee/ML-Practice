@@ -1,0 +1,7 @@
+seed: 42
+data: data
+batch_size: 64
+epochs: 100
+feature_dim: 512
+projection_dim: 256
+predictor_dim: 128
