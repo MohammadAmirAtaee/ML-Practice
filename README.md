@@ -24,6 +24,7 @@ python main.py download
 python main.py train-pretrain --epochs 1 --limit 256
 python main.py train-linear --epochs 1 --limit 256
 python main.py train-supervised --epochs 1 --limit 256
+python main.py evaluate --limit 10000
 python main.py demo
 ```
 

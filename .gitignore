@@ -10,3 +10,4 @@ checkpoints/*
 results/*
 !results/.gitkeep
 .pytest_cache/
+.gradio/

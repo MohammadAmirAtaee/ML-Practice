@@ -19,7 +19,7 @@ def predict(image):
     with torch.no_grad(): probs=torch.softmax(MODEL[1](MODEL[0].encode(x)),1)[0]
     return image, {CLASSES[i]:float(probs[i]) for i in range(10)}
 
-def launch(checkpoint='checkpoints/linear.pt'):
+def launch(checkpoint='checkpoints/linear.pt',share=True):
     import gradio as gr
     load_model(checkpoint)
     gr.Interface(predict, gr.Image(type='numpy', label='Upload image'), [gr.Image(label='Uploaded image'), gr.Label(num_top_classes=10)], title='SimSiam CIFAR-10 Demo', description='Upload an image to classify it.').launch()
