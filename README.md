@@ -1,41 +1,122 @@
-# SimSiam on CIFAR-10
+# SimSiam CIFAR-10 Project
 
-پروژه‌ای آموزشی و قابل‌اجرا برای یادگیری خودنظارتی با SimSiam و ارزیابی خطی روی CIFAR-10. تمام دستورهای زیر برای Windows PowerShell نوشته شده‌اند و CPU کافی است.
+An educational, modular implementation of SimSiam self-supervised learning on CIFAR-10. The project trains an encoder without labels, evaluates its representation with a linear classifier, compares it with a supervised baseline, and provides a local Gradio image-classification demo.
 
-## ایده‌های اصلی
+## Included
 
-یادگیری خودنظارتی از خود داده، هدف آموزشی می‌سازد و به برچسب انسانی نیاز ندارد. SimSiam دو نمای تقویت‌شده از یک تصویر را به یک encoder، projector و predictor می‌دهد. خروجی دو شاخه با شباهت کسینوسی مقایسه می‌شود؛ در یکی از شاخه‌ها `stop-gradient` اعمال می‌شود تا شبکه به راه‌حل فروپاشیده نرود. پس از pretraining، encoder ثابت می‌ماند و فقط یک classifier خطی برای ۱۰ کلاس آموزش می‌بیند.
+- SimSiam encoder, projector, predictor, stop-gradient, and cosine loss
+- CIFAR-10 loader without `torchvision`
+- CPU-compatible pretraining and evaluation
+- Linear evaluation and supervised baseline
+- Accuracy report in `results/evaluation.json`
+- Gradio upload demo with class probabilities
+- Guided notebook: `notebooks/experiment.ipynb`
 
-تابع زیان برابر میانگین دو negative cosine similarity است. CIFAR-10 شامل ۶۰٬۰۰۰ تصویر رنگی ۳۲×۳۲ در کلاس‌های airplane، automobile، bird، cat، deer، dog، frog، horse، ship و truck است.
-
-## نصب
+## Installation (Windows PowerShell)
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## اجرا
+If activation is blocked:
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+```
+
+## Dataset
+
+Download automatically:
 
 ```powershell
 python main.py download
+```
+
+Or extract the dataset manually so this layout exists:
+
+```text
+data/cifar-10-batches-py/
+├── data_batch_1
+├── data_batch_2
+├── data_batch_3
+├── data_batch_4
+├── data_batch_5
+├── test_batch
+└── batches.meta
+```
+
+CIFAR-10 contains 32x32 RGB images in: airplane, automobile, bird, cat, deer, dog, frog, horse, ship, and truck.
+
+## Training
+
+Quick CPU smoke test:
+
+```powershell
 python main.py train-pretrain --epochs 1 --limit 256
 python main.py train-linear --epochs 1 --limit 256
 python main.py train-supervised --epochs 1 --limit 256
+```
+
+Use all 50,000 training images:
+
+```powershell
+python main.py train-pretrain --epochs 5 --limit 50000
+python main.py train-linear --epochs 5 --limit 50000
+python main.py train-supervised --epochs 5 --limit 50000
+```
+
+These commands create `checkpoints/simsiam.pt`, `checkpoints/linear.pt`, and `checkpoints/supervised.pt`. Increase `--epochs` for better results and longer training.
+
+## Evaluation
+
+Evaluate both models on all 10,000 test images:
+
+```powershell
 python main.py evaluate --limit 10000
+```
+
+The report is saved to `results/evaluation.json`.
+
+## Demo
+
+After pretraining and linear evaluation:
+
+```powershell
 python main.py demo
 ```
 
-برای آزمایش واقعی، `--limit` را حذف کنید و تعداد epoch را افزایش دهید. نمودارها با `evaluation.visualization.save_curves` ذخیره می‌شوند. معماری با ورودی `[batch,3,32,32]` کار می‌کند؛ checkpointها در `checkpoints/` قرار می‌گیرند.
+Open `http://127.0.0.1:7860`. Upload an image to see the image, predicted CIFAR-10 class, and probabilities for all ten classes. The demo is local and does not require internet. Images outside CIFAR-10, such as sheep or wool, are not expected to be classified correctly because those classes do not exist in the dataset.
 
-## دمو
+## Jupyter notebook
 
-پس از `train-linear`، `python main.py demo` را اجرا کنید. تصویر upload و نمایش داده می‌شود، encoder و classifier اجرا می‌شوند، کلاس پیش‌بینی‌شده و احتمال هر ده کلاس نمایش داده می‌شود. اگر checkpoint وجود نداشته باشد، پیام واضح اجرای `python main.py train-linear` نشان داده می‌شود.
+Open `notebooks/experiment.ipynb` after installation. It demonstrates the architecture test, dataset loading, pretraining, linear evaluation, supervised comparison, checkpoint handling, loss plotting, and demo launch.
 
-## سخت‌افزار و عیب‌یابی
+## How SimSiam works
 
-CPU اجرا را ممکن می‌کند اما آموزش کامل CIFAR-10 روی CPU کند است؛ برای ارائه از subset کوچک استفاده کنید. خطای نبودن داده یعنی `python main.py download` را اجرا کنید. خطای نبودن checkpoint یعنی ابتدا pretraining و سپس linear evaluation را اجرا کنید. اگر PowerShell اجرای activation را مسدود کرد، فقط `Set-ExecutionPolicy -Scope Process Bypass` را در همان پنجره اجرا کنید.
+Two augmented views of one image pass through the same encoder and projector. A predictor processes each projection. The loss is the average negative cosine similarity between one prediction and the detached representation from the other branch. This detached branch is stop-gradient and helps avoid representation collapse. After pretraining, the encoder is frozen and a linear classifier is trained with labels.
 
-ساختار پروژه مستقل است: `models` معماری، `datasets` داده و augmentation، `training` حلقه‌های آموزشی، `evaluation` معیار و نمودار، `utils` seed/checkpoint و `app` دمو را نگه می‌دارد.
+## Project structure
+
+```text
+models/       encoder, projector, predictor, SimSiam
+datasets/     CIFAR-10 loader and augmentations
+training/     pretraining, linear evaluation, supervised training
+evaluation/   metrics, plots, test-set evaluation
+app/          Gradio demo
+utils/        seeds and checkpoint handling
+configs/      YAML configuration
+notebooks/    guided experiment notebook
+```
+
+## Troubleshooting
+
+- `CIFAR-10 not found`: run `python main.py download` or check the folder layout.
+- `Checkpoint not found`: run pretraining, then linear evaluation.
+- Activation error: run `Set-ExecutionPolicy -Scope Process Bypass`.
+- Slow CPU training: reduce `--limit` or `--epochs`.
+- Gradio import error: activate `venv` and run `pip install -r requirements.txt`.
+
+The project sets reproducible Python, NumPy, and PyTorch seeds through `utils/seed.py`. Small differences may occur across hardware and PyTorch versions.
